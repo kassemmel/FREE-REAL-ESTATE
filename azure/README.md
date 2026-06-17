@@ -4,8 +4,6 @@ This folder lifts the AIRS app (Ollama + Flask backend + nginx edge) onto a sing
 **Ubuntu 24.04 VM with Docker** and a **public IP**. No PaaS / "fancy" Azure services
 are used — just a VM, a NIC, a public IP, a VNet, and a Network Security Group.
 
-> There was no Caddy in this project to remove — the edge is already plain nginx.
-> On Azure that same nginx container is the public front door (now on port 80).
 
 ## What gets created
 
@@ -17,7 +15,7 @@ are used — just a VM, a NIC, a public IP, a VNet, and a Network Security Group
 | `Microsoft.Network/virtualNetworks` + subnet | VM network |
 | `Microsoft.Network/networkInterfaces` | VM NIC |
 
-The VM's cloud-init installs Docker + the Compose plugin, creates `/home/jkwisda/azure`, and
+The VM's cloud-init installs Docker + the Compose plugin and
 registers a `airs.service` systemd unit that runs `docker compose up -d --build`
 in that directory. **It does not bake in your app files or secrets** — you copy those
 up in step 3 (keeps the 42 KB `index.html` and your Prisma key out of the template).
