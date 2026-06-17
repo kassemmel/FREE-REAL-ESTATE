@@ -1,0 +1,1082 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Bleep Bloop Bot</title>
+  <style>
+    :root {
+      --bg: #0d0d0d;
+      --surface: #1a1a1a;
+      --surface2: #222;
+      --border: #2e2e2e;
+      --accent: #00e5ff;
+      --accent2: #7c4dff;
+      --text: #e0e0e0;
+      --text-muted: #666;
+      --user-bubble: #1c2e3a;
+      --bot-bubble: #1e1e2e;
+      --error: #ff5252;
+      --blocked: #ff6d00;
+      --allow: #00e676;
+      --radius: 12px;
+      --font-mono: 'Courier New', Courier, monospace;
+      --sidebar-r: 440px;
+      --sidebar-l: 240px;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--font-mono);
+      height: 100dvh;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    /* ── Header ── */
+    header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 20px;
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      flex-shrink: 0;
+      z-index: 10;
+    }
+
+    .logo { display: flex; align-items: center; gap: 12px; }
+    .logo-icon { width: 42px; height: 42px; }
+    .logo-icon svg { width: 100%; height: 100%; }
+
+    .logo-text {
+      font-size: 1.25rem; font-weight: bold; letter-spacing: 0.05em;
+      background: linear-gradient(90deg, var(--accent), var(--accent2));
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+    }
+    .logo-sub {
+      font-size: 0.65rem; color: var(--text-muted);
+      letter-spacing: 0.15em; text-transform: uppercase; margin-top: 2px;
+    }
+
+    .header-controls { display: flex; align-items: center; gap: 10px; }
+
+    select, button {
+      font-family: var(--font-mono); font-size: 0.8rem;
+      background: var(--surface2); color: var(--text);
+      border: 1px solid var(--border); border-radius: 6px;
+      padding: 6px 10px; cursor: pointer; transition: border-color 0.2s, color 0.2s;
+    }
+    select:focus, button:focus { outline: none; border-color: var(--accent); }
+    select:hover,  button:hover { border-color: var(--accent); }
+
+    #clear-btn { color: var(--text-muted); font-size: 0.75rem; }
+    #clear-btn:hover { color: var(--error); border-color: var(--error); }
+
+    .icon-btn {
+      display: flex; align-items: center; gap: 5px;
+      font-size: 0.75rem; color: var(--text-muted); border-color: #333; padding: 5px 9px;
+    }
+    .icon-btn svg { flex-shrink: 0; }
+    .icon-btn.active { color: var(--accent2); border-color: var(--accent2); }
+
+    .status-dot {
+      width: 8px; height: 8px; border-radius: 50%;
+      background: #444; transition: background 0.3s;
+    }
+    .status-dot.online { background: #00e676; box-shadow: 0 0 6px #00e676; }
+    .status-dot.error  { background: var(--error); }
+
+    .airs-badge {
+      display: flex; align-items: center; gap: 5px;
+      font-size: 0.7rem; padding: 4px 8px; border-radius: 6px;
+      border: 1px solid var(--border); color: var(--text-muted);
+      letter-spacing: 0.05em; white-space: nowrap;
+      cursor: pointer; user-select: none;
+      transition: border-color 0.2s, color 0.2s, opacity 0.2s;
+    }
+    .airs-badge:hover { opacity: 0.8; }
+    .airs-badge.active   { border-color: #00e676; color: #00e676; }
+    .airs-badge.inactive { border-color: #444; color: var(--text-muted); }
+    .airs-badge.loading  { opacity: 0.5; pointer-events: none; }
+    .airs-badge svg { flex-shrink: 0; }
+
+    /* ── Workspace ── */
+    .workspace { flex: 1; display: flex; overflow: hidden; }
+
+    /* ── Left: Prompts sidebar ── */
+    #prompts-sidebar {
+      width: 0; flex-shrink: 0; overflow: hidden;
+      background: var(--surface); border-right: 1px solid var(--border);
+      display: flex; flex-direction: column;
+      transition: width 0.25s ease;
+    }
+    body.prompts-open #prompts-sidebar { width: var(--sidebar-l); }
+
+    .ps-header {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 10px 12px; border-bottom: 1px solid var(--border); flex-shrink: 0;
+    }
+    .ps-title { font-size: 0.72rem; letter-spacing: 0.1em; text-transform: uppercase; color: var(--text-muted); }
+    .ps-add-btn {
+      font-size: 0.68rem; padding: 3px 8px;
+      background: transparent; color: var(--accent2); border-color: var(--accent2);
+    }
+    .ps-add-btn:hover { background: #1a1a2e; border-color: var(--accent2); }
+
+    /* Inline add-prompt form */
+    .ps-form {
+      padding: 10px 12px; border-bottom: 1px solid var(--border);
+      display: none; flex-direction: column; gap: 6px; flex-shrink: 0;
+    }
+    .ps-form.visible { display: flex; }
+    .ps-form input, .ps-form textarea {
+      font-family: var(--font-mono); font-size: 0.72rem;
+      background: var(--surface2); color: var(--text);
+      border: 1px solid var(--border); border-radius: 5px; padding: 5px 8px;
+      width: 100%; resize: none;
+    }
+    .ps-form input:focus, .ps-form textarea:focus { outline: none; border-color: var(--accent); }
+    .ps-form textarea { height: 80px; }
+    .ps-form-actions { display: flex; gap: 6px; }
+    .ps-form-actions button { font-size: 0.68rem; padding: 3px 10px; flex: 1; }
+    .ps-save-btn { color: var(--accent2); border-color: var(--accent2); }
+    .ps-save-btn:hover { background: #1a1a2e; }
+    .ps-cancel-btn { color: var(--text-muted); }
+
+    /* Prompts list */
+    .ps-list {
+      flex: 1; overflow-y: auto; padding: 8px;
+      display: flex; flex-direction: column; gap: 4px;
+    }
+    .ps-list::-webkit-scrollbar { width: 4px; }
+    .ps-list::-webkit-scrollbar-thumb { background: #333; border-radius: 2px; }
+
+    .ps-empty { font-size: 0.72rem; color: #444; text-align: center; padding: 20px 8px; }
+
+    .ps-item {
+      border: 1px solid var(--border); border-radius: 6px;
+      background: var(--surface2); cursor: pointer;
+      transition: border-color 0.15s, background 0.15s;
+      overflow: hidden;
+    }
+    .ps-item:hover { border-color: var(--accent2); background: #1a1a2e; }
+
+    .ps-item-body { padding: 7px 10px; }
+    .ps-item-name {
+      font-size: 0.72rem; font-weight: bold; color: var(--text);
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    .ps-item-preview {
+      font-size: 0.65rem; color: var(--text-muted); margin-top: 3px;
+      display: -webkit-box; -webkit-line-clamp: 2; line-clamp: 2; -webkit-box-orient: vertical;
+      overflow: hidden; line-height: 1.4;
+    }
+    .ps-item-footer {
+      display: flex; align-items: center; justify-content: flex-end;
+      padding: 3px 6px; border-top: 1px solid #252525;
+    }
+    .ps-del-btn {
+      font-size: 0.62rem; padding: 1px 6px;
+      color: #444; border-color: transparent; background: transparent;
+    }
+    .ps-del-btn:hover { color: var(--error); border-color: var(--error); background: transparent; }
+
+    /* ── Messages ── */
+    #messages {
+      flex: 1; min-width: 0;
+      overflow-y: auto; padding: 20px;
+      display: flex; flex-direction: column; gap: 16px;
+      scroll-behavior: smooth;
+    }
+    #messages::-webkit-scrollbar { width: 6px; }
+    #messages::-webkit-scrollbar-track { background: transparent; }
+    #messages::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+    .message {
+      display: flex; gap: 12px; max-width: 820px;
+      animation: fadeIn 0.2s ease; position: relative;
+    }
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(6px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    .message.user { align-self: flex-end; flex-direction: row-reverse; }
+    .message.bot  { align-self: flex-start; }
+
+    .avatar {
+      width: 32px; height: 32px; border-radius: 8px; flex-shrink: 0;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1rem; font-weight: bold;
+    }
+    .message.user .avatar { background: var(--user-bubble); border: 1px solid #1e4060; color: var(--accent); }
+    .message.bot  .avatar { background: var(--bot-bubble);  border: 1px solid #2d2d50; color: var(--accent2); }
+
+    .msg-content { display: flex; flex-direction: column; gap: 4px; max-width: calc(100% - 44px); }
+
+    .bubble {
+      padding: 10px 14px; border-radius: var(--radius);
+      line-height: 1.6; font-size: 0.9rem; white-space: pre-wrap; word-break: break-word;
+    }
+    .message.user .bubble { background: var(--user-bubble); border: 1px solid #1e4060; border-top-right-radius: 3px; }
+    .message.bot  .bubble { background: var(--bot-bubble);  border: 1px solid #2d2d50; border-top-left-radius: 3px; }
+    .bubble.error   { background: #1a0000; border-color: var(--error);   color: var(--error); }
+    .bubble.blocked { background: #1a0a00; border-color: var(--blocked); color: var(--blocked); }
+    .bubble.blocked a { color: var(--blocked); text-decoration: underline; opacity: 0.85; }
+    .bubble.blocked a:hover { opacity: 1; }
+
+    /* Message actions */
+    .msg-actions { display: flex; gap: 4px; opacity: 0; transition: opacity 0.15s; }
+    .message:hover .msg-actions { opacity: 1; }
+    .message.user .msg-actions  { justify-content: flex-end; }
+
+    .action-btn {
+      display: flex; align-items: center; gap: 4px;
+      font-size: 0.65rem; padding: 2px 7px;
+      background: var(--surface2); color: var(--text-muted);
+      border: 1px solid #333; border-radius: 4px;
+      cursor: pointer; transition: color 0.15s, border-color 0.15s;
+    }
+    .action-btn:hover  { color: var(--text); border-color: #555; }
+    .action-btn.copied { color: var(--allow);   border-color: var(--allow); }
+    .action-btn.active { color: var(--accent2); border-color: var(--accent2); }
+
+    /* Verdict panel */
+    .verdict-panel {
+      display: none; background: #111;
+      border: 1px solid #2a2a3a; border-radius: 8px;
+      overflow: hidden; font-size: 0.72rem;
+    }
+    body.show-verdicts .verdict-panel { display: block; }
+
+    .verdict-section { padding: 8px 12px; }
+    .verdict-section + .verdict-section { border-top: 1px solid #1e1e2e; }
+    .verdict-section-title {
+      display: flex; align-items: center; gap: 6px;
+      font-size: 0.68rem; letter-spacing: 0.1em; text-transform: uppercase;
+      color: var(--text-muted); margin-bottom: 6px;
+    }
+    .verdict-action {
+      padding: 1px 6px; border-radius: 4px;
+      font-size: 0.65rem; font-weight: bold; letter-spacing: 0.05em;
+    }
+    .verdict-action.allow { background: #0a1f0a; color: var(--allow);   border: 1px solid #1a3a1a; }
+    .verdict-action.block { background: #1f0a00; color: var(--blocked); border: 1px solid #3a1a00; }
+
+    .verdict-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 3px 10px; }
+    .verdict-item { display: flex; align-items: center; gap: 5px; color: var(--text-muted); padding: 1px 0; }
+    .verdict-item.flagged { color: var(--blocked); }
+    .verdict-dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; background: #333; }
+    .verdict-item.flagged .verdict-dot { background: var(--blocked); box-shadow: 0 0 4px var(--blocked); }
+    .verdict-item.clean   .verdict-dot { background: #1a3a1a; }
+    .verdict-empty { color: #444; font-style: italic; }
+    .verdict-session { padding: 5px 12px; border-top: 1px solid #1e1e2e; font-size: 0.65rem; }
+    .verdict-session a { color: #444; text-decoration: none; }
+    .verdict-session a:hover { color: var(--accent2); text-decoration: underline; }
+
+    /* ── Right: Debug sidebar ── */
+    #debug-sidebar {
+      width: 0; flex-shrink: 0; overflow: hidden;
+      background: var(--surface); border-left: 1px solid var(--border);
+      display: flex; flex-direction: column;
+      transition: width 0.25s ease;
+    }
+    body.sidebar-open #debug-sidebar { width: var(--sidebar-r); }
+
+    .ds-header {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 10px 14px; border-bottom: 1px solid var(--border); flex-shrink: 0;
+    }
+    .ds-title { font-size: 0.75rem; letter-spacing: 0.1em; text-transform: uppercase; color: var(--text-muted); }
+    .ds-close {
+      background: none; border: none; color: var(--text-muted);
+      font-size: 1.1rem; line-height: 1; cursor: pointer; padding: 0 4px;
+    }
+    .ds-close:hover { color: var(--text); }
+
+    /* sidebar-body fills remaining space; no outer scroll — inner pres scroll */
+    .ds-body {
+      flex: 1; min-height: 0; overflow: hidden;
+      padding: 12px; display: flex; flex-direction: column; gap: 10px;
+    }
+
+    .ds-label {
+      font-size: 0.68rem; color: var(--text-muted);
+      flex-shrink: 0; padding-bottom: 2px;
+    }
+    .ds-empty { font-size: 0.75rem; color: var(--text-muted); text-align: center; margin: auto; padding: 20px; }
+
+    /* debug blocks */
+    .debug-block {
+      border: 1px solid var(--border); border-radius: 8px; overflow: hidden;
+      flex-shrink: 0;
+    }
+    /* last block grows to fill remaining space */
+    .debug-block:last-child {
+      flex: 1; min-height: 0;
+      display: flex; flex-direction: column; overflow: hidden;
+    }
+    .debug-block:last-child .debug-block-body {
+      flex: 1; min-height: 0; display: flex; flex-direction: column;
+    }
+    .debug-block:last-child .debug-section:last-child {
+      flex: 1; min-height: 0; display: flex; flex-direction: column;
+    }
+    .debug-block:last-child .debug-section:last-child .debug-section-body {
+      flex: 1; min-height: 0; display: flex; flex-direction: column;
+    }
+    .debug-block:last-child .debug-section:last-child .debug-pre {
+      flex: 1; min-height: 60px; max-height: none;
+    }
+
+    .debug-block-title {
+      padding: 6px 10px; background: var(--surface2);
+      font-size: 0.68rem; letter-spacing: 0.1em; text-transform: uppercase;
+      color: var(--text-muted); border-bottom: 1px solid var(--border);
+      display: flex; align-items: center; gap: 6px;
+      cursor: pointer; user-select: none; flex-shrink: 0;
+    }
+    .debug-block-title:hover { color: var(--text); }
+    .debug-block-title .db-badge {
+      font-size: 0.6rem; padding: 1px 5px; border-radius: 3px;
+      background: #1a1a2e; color: var(--accent2); border: 1px solid #2d2d50;
+      margin-left: auto;
+    }
+    .debug-block.collapsed .debug-block-title { border-bottom-color: transparent; }
+    .debug-block.collapsed .debug-block-body  { display: none; }
+
+    .debug-section { border-bottom: 1px solid #1a1a1a; }
+    .debug-section:last-child { border-bottom: none; }
+
+    .debug-section-label {
+      padding: 5px 10px; font-size: 0.65rem; text-transform: uppercase;
+      letter-spacing: 0.1em; color: #555; background: #111;
+      display: flex; align-items: center; gap: 5px;
+      cursor: pointer; user-select: none; flex-shrink: 0;
+    }
+    .debug-section-label:hover { color: #888; }
+    .debug-section.collapsed .debug-section-label { color: #444; }
+    .debug-section.collapsed .debug-section-body  { display: none; }
+
+    /* collapse chevron */
+    .chevron {
+      width: 7px; height: 7px; flex-shrink: 0;
+      border-right: 1.5px solid currentColor; border-bottom: 1.5px solid currentColor;
+      transform: rotate(45deg); transition: transform 0.18s ease;
+      position: relative; top: -1px;
+    }
+    .debug-block.collapsed   .debug-block-title   > .chevron { transform: rotate(-45deg); top: 1px; }
+    .debug-section.collapsed .debug-section-label > .chevron { transform: rotate(-45deg); top: 1px; }
+
+    .debug-pre {
+      margin: 0; padding: 8px 10px;
+      font-family: var(--font-mono); font-size: 0.68rem; line-height: 1.5;
+      overflow-x: auto; overflow-y: auto; max-height: 280px;
+      background: #0a0a0a; white-space: pre; color: #ccc;
+    }
+    .debug-pre::-webkit-scrollbar { width: 4px; height: 4px; }
+    .debug-pre::-webkit-scrollbar-track  { background: transparent; }
+    .debug-pre::-webkit-scrollbar-thumb  { background: #333; border-radius: 2px; }
+    .debug-pre::-webkit-scrollbar-corner { background: transparent; }
+
+    /* JSON syntax */
+    .json-key    { color: #7ec8e3; }
+    .json-string { color: #a8e6a3; }
+    .json-number { color: #f0c080; }
+    .json-bool   { color: #c792ea; }
+    .json-null   { color: #ff5370; }
+
+    /* Loading dots */
+    .loading-dots span {
+      display: inline-block; width: 6px; height: 6px; margin: 0 2px;
+      border-radius: 50%; background: var(--accent2);
+      animation: bounce 1.2s infinite ease-in-out;
+    }
+    .loading-dots span:nth-child(2) { animation-delay: 0.2s; }
+    .loading-dots span:nth-child(3) { animation-delay: 0.4s; }
+    @keyframes bounce {
+      0%, 80%, 100% { transform: scale(0.6); opacity: 0.4; }
+      40%            { transform: scale(1);   opacity: 1; }
+    }
+
+    /* Welcome */
+    .welcome { text-align: center; margin: auto; color: var(--text-muted); }
+    .welcome .big-bot { font-size: 4rem; line-height: 1; margin-bottom: 16px; }
+    .welcome h2 {
+      font-size: 1rem; color: var(--text); margin-bottom: 6px;
+      background: linear-gradient(90deg, var(--accent), var(--accent2));
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+    }
+    .welcome p { font-size: 0.8rem; }
+
+    /* Input area */
+    #input-area {
+      padding: 14px 20px; background: var(--surface);
+      border-top: 1px solid var(--border);
+      display: flex; gap: 10px; align-items: flex-end; flex-shrink: 0;
+    }
+    #user-input {
+      flex: 1; background: var(--surface2); border: 1px solid var(--border);
+      border-radius: var(--radius); color: var(--text);
+      font-family: var(--font-mono); font-size: 0.9rem;
+      padding: 10px 14px; resize: none; max-height: 160px; overflow-y: auto;
+      line-height: 1.5; transition: border-color 0.2s;
+    }
+    #user-input:focus { outline: none; border-color: var(--accent); }
+    #user-input::placeholder { color: var(--text-muted); }
+
+    #send-btn {
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      border: none; color: #fff; font-weight: bold;
+      padding: 10px 18px; border-radius: var(--radius); cursor: pointer;
+      transition: opacity 0.2s, transform 0.1s;
+      font-size: 0.85rem; letter-spacing: 0.05em; height: 42px; align-self: flex-end;
+    }
+    #send-btn:hover:not(:disabled) { opacity: 0.85; }
+    #send-btn:active:not(:disabled) { transform: scale(0.97); }
+    #send-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="logo">
+    <div class="logo-icon">
+      <svg viewBox="0 0 42 42" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <rect x="6" y="10" width="30" height="22" rx="4" fill="#1a1a2e" stroke="#7c4dff" stroke-width="1.5"/>
+        <circle cx="15" cy="21" r="3.5" fill="#00e5ff"/>
+        <circle cx="27" cy="21" r="3.5" fill="#00e5ff"/>
+        <rect x="18" y="27" width="6" height="2" rx="1" fill="#7c4dff"/>
+        <rect x="14" y="6" width="3" height="5" rx="1.5" fill="#7c4dff"/>
+        <rect x="25" y="6" width="3" height="5" rx="1.5" fill="#7c4dff"/>
+        <rect x="1" y="18" width="4" height="6" rx="2" fill="#7c4dff"/>
+        <rect x="37" y="18" width="4" height="6" rx="2" fill="#7c4dff"/>
+      </svg>
+    </div>
+    <div>
+      <div class="logo-text">Bleep Bloop Bot</div>
+      <div class="logo-sub">Secured by Prisma AIRS</div>
+    </div>
+  </div>
+
+  <div class="header-controls">
+    <button class="icon-btn" id="prompts-btn" title="Saved prompts">
+      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+        <polyline points="14 2 14 8 20 8"/>
+        <line x1="16" y1="13" x2="8" y2="13"/>
+        <line x1="16" y1="17" x2="8" y2="17"/>
+        <polyline points="10 9 9 9 8 9"/>
+      </svg>
+      Prompts
+    </button>
+    <button class="icon-btn" id="verdict-btn" title="Toggle AIRS verdict per message">
+      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+        <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+      </svg>
+      Verdict
+    </button>
+    <button class="icon-btn" id="debug-btn" title="Toggle AIRS debug sidebar">
+      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+        <path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/>
+      </svg>
+      Debug
+    </button>
+    <div class="airs-badge inactive" id="airs-badge">
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
+        <path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4z"/>
+      </svg>
+      <span id="airs-label">AIRS OFF</span>
+    </div>
+    <div class="status-dot" id="status-dot"></div>
+    <select id="model-select"><option value="">Loading models...</option></select>
+    <button id="clear-btn">Clear</button>
+  </div>
+</header>
+
+<div class="workspace">
+
+  <!-- Left: Saved Prompts -->
+  <aside id="prompts-sidebar">
+    <div class="ps-header">
+      <span class="ps-title">Saved Prompts</span>
+      <button class="ps-add-btn" id="ps-add-btn">+ Add</button>
+    </div>
+
+    <div class="ps-form" id="ps-form">
+      <input  type="text" id="ps-name" placeholder="Prompt name…" maxlength="60" />
+      <textarea id="ps-text" placeholder="Prompt text…"></textarea>
+      <div class="ps-form-actions">
+        <button class="ps-save-btn"   id="ps-save-btn">Save</button>
+        <button class="ps-cancel-btn" id="ps-cancel-btn">Cancel</button>
+      </div>
+    </div>
+
+    <div class="ps-list" id="ps-list">
+      <div class="ps-empty">No saved prompts yet.<br>Click + Add to create one.</div>
+    </div>
+  </aside>
+
+  <!-- Centre: Chat -->
+  <div id="messages">
+    <div class="welcome" id="welcome">
+      <div class="big-bot">🤖</div>
+      <h2>Bleep Bloop Bot online.</h2>
+      <p>Select a model above and start chatting.</p>
+    </div>
+  </div>
+
+  <!-- Right: Debug -->
+  <aside id="debug-sidebar">
+    <div class="ds-header">
+      <span class="ds-title">AIRS Debug</span>
+      <button class="ds-close" id="ds-close" title="Close">&#x2715;</button>
+    </div>
+    <div class="ds-body" id="ds-body">
+      <div class="ds-empty">Send a message with AIRS enabled,<br>then click Inspect on any response.</div>
+    </div>
+  </aside>
+
+</div>
+
+<div id="input-area">
+  <textarea id="user-input" rows="1"
+    placeholder="Send a message… (Enter to send, Shift+Enter for newline, ↑↓ for history)"
+  ></textarea>
+  <button id="send-btn" disabled>Send</button>
+</div>
+
+<script>
+  const messagesEl  = document.getElementById('messages');
+  const welcomeEl   = document.getElementById('welcome');
+  const inputEl     = document.getElementById('user-input');
+  const sendBtn     = document.getElementById('send-btn');
+  const modelSel    = document.getElementById('model-select');
+  const clearBtn    = document.getElementById('clear-btn');
+  const statusDot   = document.getElementById('status-dot');
+  const airsBadge   = document.getElementById('airs-badge');
+  const airsLabel   = document.getElementById('airs-label');
+  const verdictBtn  = document.getElementById('verdict-btn');
+  const debugBtn    = document.getElementById('debug-btn');
+  const dsBody      = document.getElementById('ds-body');
+  const dsClose     = document.getElementById('ds-close');
+  const promptsBtn  = document.getElementById('prompts-btn');
+  const psList      = document.getElementById('ps-list');
+  const psForm      = document.getElementById('ps-form');
+  const psAddBtn    = document.getElementById('ps-add-btn');
+  const psSaveBtn   = document.getElementById('ps-save-btn');
+  const psCancelBtn = document.getElementById('ps-cancel-btn');
+  const psName      = document.getElementById('ps-name');
+  const psText      = document.getElementById('ps-text');
+
+  const SCM_BASE   = 'https://stratacloudmanager.paloaltonetworks.com/ai-security/runtime/api-violations';
+  const SCM_TENANT = 'dca7ca34-3930-43e1-b063-0f112ff7490a';
+
+  let history        = [];
+  let generating     = false;
+  let airsEnabled    = false;
+  let airsProfile    = '';
+  let verdictVisible = false;
+  let sidebarOpen    = false;
+  let promptsOpen    = false;
+
+  let inputHistory = [];
+  let historyIdx   = -1;
+  let savedDraft   = '';
+
+  // ── Bootstrap ──
+  async function init() {
+    await Promise.all([loadModels(), loadAirsStatus(), loadPrompts()]);
+  }
+
+  // ── AIRS status / toggle ──
+  async function loadAirsStatus() {
+    try {
+      const res = await fetch('/api/status');
+      const { airs_configured, airs_enabled, airs_profile } = await res.json();
+      airsEnabled = airs_enabled;
+      airsProfile = airs_profile || '';
+      updateAirsBadge(airs_configured, airs_enabled);
+    } catch {}
+  }
+
+  function updateAirsBadge(configured, enabled) {
+    airsBadge.className = (configured && enabled) ? 'airs-badge active' : 'airs-badge inactive';
+    airsLabel.textContent = (configured && enabled) ? 'AIRS ON' : 'AIRS OFF';
+  }
+
+  async function toggleAirs() {
+    airsBadge.classList.add('loading');
+    try {
+      const res = await fetch('/api/airs/toggle', { method: 'POST' });
+      const { airs_configured, airs_enabled } = await res.json();
+      airsEnabled = airs_enabled;
+      updateAirsBadge(airs_configured, airs_enabled);
+    } catch {} finally {
+      airsBadge.classList.remove('loading');
+    }
+  }
+
+  // ── Sidebar toggles ──
+  function toggleVerdicts() {
+    verdictVisible = !verdictVisible;
+    document.body.classList.toggle('show-verdicts', verdictVisible);
+    verdictBtn.classList.toggle('active', verdictVisible);
+  }
+
+  function toggleDebugSidebar(forceOpen) {
+    sidebarOpen = forceOpen !== undefined ? forceOpen : !sidebarOpen;
+    document.body.classList.toggle('sidebar-open', sidebarOpen);
+    debugBtn.classList.toggle('active', sidebarOpen);
+  }
+
+  function togglePromptsSidebar(forceOpen) {
+    promptsOpen = forceOpen !== undefined ? forceOpen : !promptsOpen;
+    document.body.classList.toggle('prompts-open', promptsOpen);
+    promptsBtn.classList.toggle('active', promptsOpen);
+  }
+
+  // ── Models ──
+  async function loadModels() {
+    try {
+      const res = await fetch('/api/models');
+      if (!res.ok) throw new Error();
+      const { models = [] } = await res.json();
+      modelSel.innerHTML = models.length
+        ? models.map(m => `<option value="${m.name}">${m.name}</option>`).join('')
+        : '<option value="">No models found</option>';
+      statusDot.className = 'status-dot online';
+      if (models.length) sendBtn.disabled = false;
+    } catch {
+      statusDot.className = 'status-dot error';
+      modelSel.innerHTML = '<option value="">Ollama unreachable</option>';
+    }
+  }
+
+  // ── Saved Prompts ──
+  async function loadPrompts() {
+    try {
+      const res = await fetch('/api/prompts');
+      const data = await res.json();
+      renderPromptsList(data);
+    } catch {}
+  }
+
+  function renderPromptsList(prompts) {
+    if (!prompts.length) {
+      psList.innerHTML = '<div class="ps-empty">No saved prompts yet.<br>Click + Add to create one.</div>';
+      return;
+    }
+    psList.innerHTML = '';
+    for (const p of prompts) {
+      const item = document.createElement('div');
+      item.className = 'ps-item';
+      item.dataset.id = p.id;
+      item.innerHTML = `
+        <div class="ps-item-body">
+          <div class="ps-item-name">${escHtml(p.name)}</div>
+          <div class="ps-item-preview">${escHtml(p.text)}</div>
+        </div>
+        <div class="ps-item-footer">
+          <button class="ps-del-btn" data-id="${p.id}" title="Delete">Delete</button>
+        </div>`;
+      // Click body → load into textarea
+      item.querySelector('.ps-item-body').addEventListener('click', () => {
+        inputEl.value = p.text;
+        autoResize();
+        inputEl.focus();
+      });
+      item.querySelector('.ps-del-btn').addEventListener('click', async e => {
+        e.stopPropagation();
+        await fetch(`/api/prompts/${p.id}`, { method: 'DELETE' });
+        await loadPrompts();
+      });
+      psList.appendChild(item);
+    }
+  }
+
+  function showPromptForm() {
+    // Pre-fill text from current input if present
+    psText.value = inputEl.value.trim();
+    psName.value = '';
+    psForm.classList.add('visible');
+    psName.focus();
+  }
+
+  function hidePromptForm() {
+    psForm.classList.remove('visible');
+    psName.value = '';
+    psText.value = '';
+  }
+
+  async function savePrompt() {
+    const name = psName.value.trim();
+    const text = psText.value.trim();
+    if (!name || !text) {
+      psName.style.borderColor = name ? '' : 'var(--error)';
+      psText.style.borderColor = text ? '' : 'var(--error)';
+      return;
+    }
+    psName.style.borderColor = '';
+    psText.style.borderColor = '';
+    await fetch('/api/prompts', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name, text }),
+    });
+    hidePromptForm();
+    await loadPrompts();
+  }
+
+  // ── Helpers ──
+  function escHtml(s) {
+    return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+
+  function scmUrl(sessionId) {
+    const clean = sessionId.replace(/^[^0-9a-fA-F-]+/, '');
+    return `${SCM_BASE}/${clean}/0/${airsProfile}/${SCM_TENANT}/BleepBloopBot`;
+  }
+
+  function detectionSummary(detections) {
+    const active = Object.entries(detections)
+      .filter(([, v]) => v === true)
+      .map(([k]) => k.replace(/_/g, ' '));
+    return active.length ? active.join(', ') : 'policy violation';
+  }
+
+  // ── JSON syntax highlight ──
+  function syntaxHL(obj) {
+    let s = JSON.stringify(obj, null, 2);
+    s = s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    return s.replace(
+      /("(\\u[a-fA-F0-9]{4}|\\[^u]|[^\\"])*"(\s*:)?|\b(true|false|null)\b|-?\d+(?:\.\d*)?(?:[eE][+\-]?\d+)?)/g,
+      m => {
+        if (/^"/.test(m)) return /:$/.test(m)
+          ? `<span class="json-key">${m}</span>`
+          : `<span class="json-string">${m}</span>`;
+        if (/true|false/.test(m)) return `<span class="json-bool">${m}</span>`;
+        if (/null/.test(m))       return `<span class="json-null">${m}</span>`;
+        return `<span class="json-number">${m}</span>`;
+      }
+    );
+  }
+
+  // ── Debug sidebar renderer ──
+  function renderDebugSidebar(debugData, label) {
+    if (!debugData) {
+      dsBody.innerHTML = '<div class="ds-empty">No AIRS debug data for this message.</div>';
+      return;
+    }
+
+    const sections = [
+      { key: 'prompt_scan',   title: 'Prompt Scan',   badge: 'prompt'   },
+      { key: 'response_scan', title: 'Response Scan', badge: 'response' },
+    ];
+
+    let html = label ? `<div class="ds-label">${escHtml(label)}</div>` : '';
+    let found = false;
+
+    for (const { key, title, badge } of sections) {
+      const d = debugData[key];
+      if (!d) continue;
+      found = true;
+      html += `
+        <div class="debug-block">
+          <div class="debug-block-title" data-toggle="block">
+            <span class="chevron"></span>${title}
+            <span class="db-badge">${badge}</span>
+          </div>
+          <div class="debug-block-body">
+            <div class="debug-section">
+              <div class="debug-section-label" data-toggle="section">
+                <span class="chevron"></span>
+                Request — ${d.request?.method || 'POST'} ${escHtml(d.request?.url || '')}
+              </div>
+              <div class="debug-section-body">
+                <pre class="debug-pre">${syntaxHL({ headers: d.request?.headers, body: d.request?.body })}</pre>
+              </div>
+            </div>
+            <div class="debug-section">
+              <div class="debug-section-label" data-toggle="section">
+                <span class="chevron"></span>
+                Response — HTTP ${d.response?.status || '?'}
+              </div>
+              <div class="debug-section-body">
+                <pre class="debug-pre">${syntaxHL({ headers: d.response?.headers, body: d.response?.body })}</pre>
+              </div>
+            </div>
+          </div>
+        </div>`;
+    }
+
+    if (!found) {
+      dsBody.innerHTML = '<div class="ds-empty">No AIRS scan debug data available.</div>';
+      return;
+    }
+    dsBody.innerHTML = html;
+  }
+
+  // ── Message rendering ──
+  function addMessage(role, text = '') {
+    welcomeEl.style.display = 'none';
+
+    const wrap = document.createElement('div');
+    wrap.className = `message ${role}`;
+
+    const avatar = document.createElement('div');
+    avatar.className = 'avatar';
+    avatar.textContent = role === 'user' ? 'U' : '🤖';
+
+    const msgContent = document.createElement('div');
+    msgContent.className = 'msg-content';
+
+    const bubble = document.createElement('div');
+    bubble.className = 'bubble';
+    bubble.textContent = text;
+
+    const actions = document.createElement('div');
+    actions.className = 'msg-actions';
+
+    const copyBtn = document.createElement('button');
+    copyBtn.className = 'action-btn';
+    copyBtn.innerHTML = `<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg> Copy`;
+    copyBtn.addEventListener('click', () => copyToClipboard(bubble.innerText, copyBtn));
+    actions.appendChild(copyBtn);
+
+    msgContent.appendChild(bubble);
+    msgContent.appendChild(actions);
+    wrap.appendChild(avatar);
+    wrap.appendChild(msgContent);
+    messagesEl.appendChild(wrap);
+    messagesEl.scrollTop = messagesEl.scrollHeight;
+
+    let verdictPanel = null;
+    let inspectBtn   = null;
+
+    if (role === 'bot') {
+      inspectBtn = document.createElement('button');
+      inspectBtn.className = 'action-btn';
+      inspectBtn.innerHTML = `<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg> Inspect`;
+      inspectBtn.addEventListener('click', () => {
+        renderDebugSidebar(inspectBtn._debugData, inspectBtn._label);
+        toggleDebugSidebar(true);
+      });
+      actions.appendChild(inspectBtn);
+
+      verdictPanel = document.createElement('div');
+      verdictPanel.className = 'verdict-panel';
+      msgContent.appendChild(verdictPanel);
+    }
+
+    return { bubble, verdictPanel, inspectBtn };
+  }
+
+  function copyToClipboard(text, btn) {
+    navigator.clipboard.writeText(text).then(() => {
+      btn.classList.add('copied');
+      btn.innerHTML = `<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg> Copied`;
+      setTimeout(() => {
+        btn.classList.remove('copied');
+        btn.innerHTML = `<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg> Copy`;
+      }, 1500);
+    }).catch(() => {});
+  }
+
+  function setLoading(bubble) {
+    bubble.innerHTML = '<span class="loading-dots"><span></span><span></span><span></span></span>';
+  }
+
+  // ── Verdict panel renderer ──
+  function renderVerdictPanel(panel, verdict) {
+    if (!verdict || (!verdict.prompt && !verdict.response)) {
+      panel.innerHTML = '<div class="verdict-section"><span class="verdict-empty">No AIRS scan data</span></div>';
+      return;
+    }
+    const sections = [
+      { key: 'prompt',   label: 'Prompt Scan' },
+      { key: 'response', label: 'Response Scan' },
+    ];
+    let html = '';
+    let sessionId = '';
+    for (const { key, label } of sections) {
+      const v = verdict[key];
+      if (!v) continue;
+      const action   = v.action || 'allow';
+      const detected = v.detected || {};
+      sessionId = v.session_id || sessionId;
+      const entries = Object.entries(detected);
+      let itemsHtml = entries.length
+        ? '<div class="verdict-grid">' + entries.map(([cat, val]) =>
+            `<div class="${val === true ? 'verdict-item flagged' : 'verdict-item clean'}">
+               <div class="verdict-dot"></div>${cat.replace(/_/g,' ')}
+             </div>`).join('') + '</div>'
+        : '<span class="verdict-empty">No detections</span>';
+      html += `<div class="verdict-section">
+        <div class="verdict-section-title">${label}
+          <span class="verdict-action ${action === 'block' ? 'block' : 'allow'}">${action.toUpperCase()}</span>
+        </div>${itemsHtml}</div>`;
+    }
+    if (sessionId) {
+      html += `<div class="verdict-session">
+        <a href="${scmUrl(sessionId)}" target="_blank" rel="noopener">
+          View in Strata Cloud Manager &rarr; (${sessionId.replace(/^[^0-9a-fA-F-]+/, '')})
+        </a></div>`;
+    }
+    panel.innerHTML = html;
+  }
+
+  // ── Send ──
+  async function sendMessage() {
+    if (generating) return;
+    const text  = inputEl.value.trim();
+    const model = modelSel.value;
+    if (!text || !model) return;
+
+    if (!inputHistory.length || inputHistory[inputHistory.length - 1] !== text) {
+      inputHistory.push(text);
+    }
+    historyIdx = -1;
+    savedDraft = '';
+
+    inputEl.value = '';
+    autoResize();
+    generating = true;
+    sendBtn.disabled    = true;
+    sendBtn.textContent = '...';
+
+    addMessage('user', text);
+    history.push({ role: 'user', content: text });
+
+    const { bubble: botBubble, verdictPanel, inspectBtn } = addMessage('bot');
+    setLoading(botBubble);
+
+    try {
+      const res = await fetch('/api/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ model, messages: history }),
+      });
+
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.error || `HTTP ${res.status}`);
+      }
+
+      const data = await res.json();
+      const ts   = new Date().toLocaleTimeString();
+
+      if (inspectBtn) {
+        inspectBtn._debugData = data.debug || null;
+        inspectBtn._label     = `Exchange at ${ts}`;
+      }
+
+      if (data.blocked) {
+        botBubble.className = 'bubble blocked';
+        const stage  = data.stage === 'prompt' ? 'Your message' : 'The model response';
+        const reason = detectionSummary(data.detections || {});
+        const isFilter = !!data.filter;
+        const source   = isFilter ? data.filter : 'Prisma AIRS';
+        const sid    = data.session_id || '';
+        // The Strata Cloud Manager link only applies to AIRS verdicts.
+        const link   = (!isFilter && sid) ? `<a href="${scmUrl(sid)}" target="_blank" rel="noopener">View in Strata Cloud Manager &rarr;</a>` : '';
+        botBubble.innerHTML =
+          `Blocked by ${source}\n${stage} was flagged for: ${reason}` + (link ? `\n\n${link}` : '');
+        if (verdictPanel) renderVerdictPanel(verdictPanel, data.verdict || null);
+        history.pop();
+      } else {
+        botBubble.textContent = data.content;
+        history.push({ role: 'assistant', content: data.content || '' });
+        if (verdictPanel) renderVerdictPanel(verdictPanel, data.verdict || null);
+      }
+
+      if (sidebarOpen && inspectBtn) {
+        renderDebugSidebar(inspectBtn._debugData, inspectBtn._label);
+      }
+    } catch (err) {
+      botBubble.className   = 'bubble error';
+      botBubble.textContent = `Error: ${err.message}`;
+      // Drop the failed user turn so it can't poison later requests (e.g. a
+      // model switch). Mirrors the `blocked` branch above.
+      history.pop();
+    } finally {
+      messagesEl.scrollTop    = messagesEl.scrollHeight;
+      generating              = false;
+      sendBtn.disabled        = false;
+      sendBtn.textContent     = 'Send';
+    }
+  }
+
+  // ── Auto-resize textarea ──
+  function autoResize() {
+    inputEl.style.height = 'auto';
+    inputEl.style.height = Math.min(inputEl.scrollHeight, 160) + 'px';
+  }
+
+  // ── Events ──
+  promptsBtn.addEventListener('click',  () => togglePromptsSidebar());
+  verdictBtn.addEventListener('click',  toggleVerdicts);
+  debugBtn.addEventListener('click',    () => toggleDebugSidebar());
+  dsClose.addEventListener('click',     () => toggleDebugSidebar(false));
+  airsBadge.addEventListener('click',   toggleAirs);
+  sendBtn.addEventListener('click',     sendMessage);
+  modelSel.addEventListener('change',   () => { sendBtn.disabled = !modelSel.value; });
+
+  psAddBtn.addEventListener('click', showPromptForm);
+  psCancelBtn.addEventListener('click', hidePromptForm);
+  psSaveBtn.addEventListener('click', savePrompt);
+
+  clearBtn.addEventListener('click', () => {
+    history      = [];
+    inputHistory = [];
+    historyIdx   = -1;
+    savedDraft   = '';
+    messagesEl.innerHTML = '';
+    messagesEl.appendChild(welcomeEl);
+    welcomeEl.style.display = '';
+    dsBody.innerHTML = '<div class="ds-empty">Send a message with AIRS enabled,<br>then click Inspect on any response.</div>';
+  });
+
+  inputEl.addEventListener('input', autoResize);
+
+  inputEl.addEventListener('keydown', e => {
+    if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); return; }
+
+    if (e.key === 'ArrowUp' && inputHistory.length > 0) {
+      const atTop = inputEl.selectionStart === 0;
+      if (atTop || historyIdx !== -1) {
+        e.preventDefault();
+        if (historyIdx === -1) savedDraft = inputEl.value;
+        historyIdx = Math.min(historyIdx + 1, inputHistory.length - 1);
+        inputEl.value = inputHistory[inputHistory.length - 1 - historyIdx];
+        autoResize();
+        requestAnimationFrame(() => { inputEl.selectionStart = inputEl.selectionEnd = inputEl.value.length; });
+      }
+      return;
+    }
+
+    if (e.key === 'ArrowDown' && historyIdx !== -1) {
+      e.preventDefault();
+      historyIdx--;
+      inputEl.value = historyIdx === -1 ? savedDraft : inputHistory[inputHistory.length - 1 - historyIdx];
+      autoResize();
+      requestAnimationFrame(() => { inputEl.selectionStart = inputEl.selectionEnd = inputEl.value.length; });
+    }
+  });
+
+  // Delegated collapse toggles in debug sidebar
+  dsBody.addEventListener('click', e => {
+    const bt = e.target.closest('[data-toggle="block"]');
+    const st = e.target.closest('[data-toggle="section"]');
+    if (bt) bt.closest('.debug-block').classList.toggle('collapsed');
+    if (st) st.closest('.debug-section').classList.toggle('collapsed');
+  });
+
+  init();
+</script>
+</body>
+</html>

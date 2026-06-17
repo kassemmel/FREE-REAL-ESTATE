@@ -1,0 +1,16 @@
+# Environment / secrets
+.env
+.env.*
+
+# Local "ollama version" restore backups
+*.ollama.bak
+
+# Archive bundles
+*.tgz
+
+# Python
+__pycache__/
+*.py[cod]
+
+# macOS
+.DS_Store

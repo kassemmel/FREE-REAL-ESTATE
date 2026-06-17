@@ -1,0 +1,27 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentParameters.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "vmName": {
+      "value": "airs-vm"
+    },
+    "adminUsername": {
+      "value": "jkwisda"
+    },
+    "adminPublicKey": {
+      "value": "REPLACE_WITH_CONTENTS_OF_YOUR_id_ed25519.pub"
+    },
+    "vmSize": {
+      "value": "Standard_D4s_v5"
+    },
+    "osDiskSizeGB": {
+      "value": 128
+    },
+    "sshSourceAddressPrefix": {
+      "value": "REPLACE_WITH_YOUR_PUBLIC_IP/32"
+    },
+    "httpSourceAddressPrefix": {
+      "value": "REPLACE_WITH_YOUR_PUBLIC_IP/32"
+    }
+  }
+}

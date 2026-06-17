@@ -1,0 +1,70 @@
+services:
+  ollama:
+    container_name: bleepbloopbot-ollama
+    image: ollama/ollama:latest
+    restart: unless-stopped
+    volumes:
+      - ollama_data:/root/.ollama
+    # Uncomment below for NVIDIA GPU support:
+    # deploy:
+    #   resources:
+    #     reservations:
+    #       devices:
+    #         - driver: nvidia
+    #           count: all
+    #           capabilities: [gpu]
+    networks:
+      - internal
+
+  backend:
+    container_name: bleepbloopbot-backend
+    build: ./backend
+    restart: unless-stopped
+    environment:
+      - OLLAMA_URL=http://ollama:11434
+      # --- Azure AI Foundry / Azure OpenAI --- (values from .env; leave blank to disable)
+      - AZURE_OPENAI_ENDPOINT=${AZURE_OPENAI_ENDPOINT:-}
+      - AZURE_OPENAI_API_KEY=${AZURE_OPENAI_API_KEY:-}
+      - AZURE_OPENAI_API_VERSION=${AZURE_OPENAI_API_VERSION:-2024-10-21}
+      - AZURE_OPENAI_DEPLOYMENTS=${AZURE_OPENAI_DEPLOYMENTS:-}
+      # --- Portkey AI gateway --- (values from .env; leave PORTKEY_MODELS blank to disable)
+      - PORTKEY_BASE_URL=${PORTKEY_BASE_URL:-https://api.portkey.ai/v1}
+      - PORTKEY_API_KEY=${PORTKEY_API_KEY:-}
+      - PORTKEY_VIRTUAL_KEY=${PORTKEY_VIRTUAL_KEY:-}
+      - PORTKEY_PROVIDER=${PORTKEY_PROVIDER:-}
+      - PORTKEY_CONFIG=${PORTKEY_CONFIG:-}
+      - PORTKEY_MODELS=${PORTKEY_MODELS:-}
+      # --- Prisma AIRS ---
+      # Set your API key and profile name. Leave blank to disable scanning.
+      - PRISMA_AIRS_API_KEY=${PRISMA_AIRS_API_KEY:-}
+      - PRISMA_AIRS_PROFILE=${PRISMA_AIRS_PROFILE:-}
+      # Change region if needed: https://service-de / service-in / service-sg
+      - PRISMA_AIRS_URL=${PRISMA_AIRS_URL:-https://service.api.aisecurity.paloaltonetworks.com}
+    volumes:
+      - prompts_data:/app/data
+    depends_on:
+      - ollama
+    networks:
+      - internal
+
+  web:
+    container_name: bleepbloopbot-web
+    image: nginx:alpine
+    restart: unless-stopped
+    ports:
+      - "3131:80"
+    volumes:
+      - ./index.html:/usr/share/nginx/html/index.html:ro
+      - ./nginx.conf:/etc/nginx/conf.d/default.conf:ro
+    depends_on:
+      - backend
+    networks:
+      - internal
+
+networks:
+  internal:
+    driver: bridge
+
+volumes:
+  ollama_data:
+  prompts_data:

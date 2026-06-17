@@ -1,0 +1,75 @@
+# nginx is the public edge for the AIRS app on Azure -- TLS version.
+#
+# Activate after the first cert is issued (see README / bootstrap notes):
+#   cd /home/jkwisda/azure && cp nginx.conf.https nginx.conf && docker compose restart web
+#
+# !!! Replace YOURDOMAIN.com (3 places) with your real domain before using. !!!
+#
+# SECURITY: IP allowlist enforced on the 443 app server. The port-80 server only
+# redirects and serves the public ACME challenge path (needed for renewals too).
+
+geo $allowed {
+    default 0;
+
+    # --- Permitted IPs: add your own below (one per line) ---
+    # 203.0.113.5     1;       # home
+    # 198.51.100.0/24 1;       # office range
+    # --------------------------------------------------------
+}
+
+# HTTP: ACME challenge (public) + redirect everything else to HTTPS.
+server {
+    listen 80;
+    server_name YOURDOMAIN.com;
+
+    location ^~ /.well-known/acme-challenge/ {
+        root /var/www/certbot;
+    }
+
+    location / {
+        return 301 https://$host$request_uri;
+    }
+}
+
+# HTTPS: the ACL-protected app.
+server {
+    listen 443 ssl;
+    server_name YOURDOMAIN.com;
+
+    ssl_certificate     /etc/letsencrypt/live/YOURDOMAIN.com/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/YOURDOMAIN.com/privkey.pem;
+
+    # Modern, self-contained TLS settings (no dependency on certbot-provided
+    # include files, which `certonly` does not generate).
+    ssl_protocols TLSv1.2 TLSv1.3;
+    ssl_prefer_server_ciphers off;
+    ssl_ciphers ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES128-GCM-SHA256:ECDHE-ECDSA-AES256-GCM-SHA384:ECDHE-RSA-AES256-GCM-SHA384:ECDHE-ECDSA-CHACHA20-POLY1305:ECDHE-RSA-CHACHA20-POLY1305;
+    ssl_session_cache shared:SSL:10m;
+    ssl_session_timeout 1d;
+
+    # Enforce the allowlist for every request to the app.
+    if ($allowed = 0) {
+        return 403;
+    }
+
+    location / {
+        root /usr/share/nginx/html;
+        index index.html;
+    }
+
+    location /api/ {
+        # See bootstrap config for why a variable + resolver is used here.
+        resolver 127.0.0.11 valid=10s;
+        set $airs_backend backend;
+        proxy_pass http://$airs_backend:5000;
+        proxy_http_version 1.1;
+        proxy_redirect off;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header Connection '';
+        proxy_read_timeout 360s;
+        proxy_connect_timeout 10s;
+        proxy_send_timeout 360s;
+    }
+}
