@@ -215,6 +215,7 @@
     }
     .message.user .avatar { background: var(--user-bubble); border: 1px solid #1e4060; color: var(--accent); }
     .message.bot  .avatar { background: var(--bot-bubble);  border: 1px solid #2d2d50; color: var(--accent2); }
+    .avatar img { width: 100%; height: 100%; border-radius: 8px; object-fit: cover; display: block; }
 
     .msg-content { display: flex; flex-direction: column; gap: 4px; max-width: calc(100% - 44px); }
 
@@ -830,7 +831,12 @@
 
     const avatar = document.createElement('div');
     avatar.className = 'avatar';
-    avatar.textContent = role === 'user' ? 'U' : '🤖';
+    const avatarFallback = role === 'user' ? 'U' : '🤖';
+    const avatarImg = document.createElement('img');
+    avatarImg.src = role === 'user' ? 'images/user.png' : 'images/bot.png';
+    avatarImg.alt = avatarFallback;
+    avatarImg.onerror = () => { avatarImg.remove(); avatar.textContent = avatarFallback; };
+    avatar.appendChild(avatarImg);
 
     const msgContent = document.createElement('div');
     msgContent.className = 'msg-content';
