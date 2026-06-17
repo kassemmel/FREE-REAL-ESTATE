@@ -1,4 +1,4 @@
-# Deploying AIRS to Azure
+# Deploying a simple AI Chat Application to Azure for demo purposes
 
 This folder lifts the AIRS app (Ollama + Flask backend + nginx edge) onto a single
 **Ubuntu 24.04 VM with Docker** and a **public IP**. No PaaS / "fancy" Azure services
