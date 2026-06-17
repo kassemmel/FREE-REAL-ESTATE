@@ -1,6 +1,7 @@
 # Environment / secrets
 .env
 .env.*
+!.env.example
 
 # Local "ollama version" restore backups
 *.ollama.bak
