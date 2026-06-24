@@ -47,6 +47,47 @@ services:
     networks:
       - internal
 
+  n8n:
+    container_name: bleepbloopbot-n8n
+    image: docker.n8n.io/n8nio/n8n:latest
+    restart: unless-stopped
+    # Published so the external Caddy reverse proxy (on another host) can reach
+    # it at http://<this-host>:5678. TLS is terminated by Caddy.
+    ports:
+      - "5678:5678"
+    environment:
+      - N8N_HOST=n8n.demo-networks.com
+      - N8N_PORT=5678
+      - N8N_PROTOCOL=https
+      - N8N_SECURE_COOKIE=false
+      - NODE_ENV=production
+      - WEBHOOK_URL=https://n8n.demo-networks.com/
+      - N8N_EDITOR_BASE_URL=https://n8n.demo-networks.com/
+      # Caddy is the single reverse-proxy hop in front of n8n.
+      - N8N_PROXY_HOPS=1
+      - N8N_RUNNERS_ENABLED=true
+      # Required to use the MCP Client node as a tool under an AI Agent node.
+      - N8N_COMMUNITY_PACKAGES_ALLOW_TOOL_USAGE=true
+      - GENERIC_TIMEZONE=Europe/Berlin
+      - TZ=Europe/Berlin
+    volumes:
+      - n8n_data:/home/node/.n8n
+    networks:
+      - internal
+
+  stocks-mcp:
+    container_name: bleepbloopbot-stocks-mcp
+    build: ./stocks-mcp
+    restart: unless-stopped
+    # Published so the external Caddy reverse proxy (on another host) can reach
+    # it at http://<this-host>:8077 and front it as stocks-mcp.demo-networks.com.
+    # Portkey's MCP Gateway is the only intended caller (it injects the upstream
+    # bearer secret Caddy enforces).
+    ports:
+      - "8077:8000"
+    networks:
+      - internal
+
   web:
     container_name: bleepbloopbot-web
     image: nginx:alpine
@@ -69,3 +110,4 @@ networks:
 volumes:
   ollama_data:
   prompts_data:
+  n8n_data:
