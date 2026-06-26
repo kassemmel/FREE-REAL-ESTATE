@@ -104,9 +104,66 @@ Comparing attack-success-rate A vs B is the guardrail efficacy number.
 
 ---
 
+---
+
+# n8n Agent target
+
+The second app: an n8n **AI Agent** workflow exposed via a **Chat Trigger** node,
+with the **stocks-mcp** MCP tool attached. The workflow lives in the `n8n_data`
+volume (not the repo), so the values below come from the Chat Trigger node in n8n.
+
+- **Type:** Agent
+- **Connection Method:** REST API
+- **Endpoint accessibility:** Public (`n8n.demo-networks.com` over TLS, via Caddy)
+- **Chat URL:** `https://n8n.demo-networks.com/webhook/e5616171-e3b5-4c39-81d4-67409f9fa60a/chat`
+- **Auth:** Basic Auth (username/password set on the Chat Trigger node) — enter in
+  SCM, do not commit credentials here.
+- Workflow must be **Active** for the production `/webhook/` path to respond
+  (otherwise it's `/webhook-test/`, live only while the node is listening).
+
+## Import via cURL
+
+```bash
+curl -X POST https://n8n.demo-networks.com/webhook/e5616171-e3b5-4c39-81d4-67409f9fa60a/chat \
+  -H "Content-Type: application/json" \
+  -u '<username>:<password>' \
+  -d '{
+    "action": "sendMessage",
+    "sessionId": "airs-redteam-001",
+    "chatInput": "{INPUT}"
+  }'
+```
+
+- `chatInput` carries each attack prompt (`{INPUT}`).
+- `action: "sendMessage"` matches the n8n hosted-chat protocol.
+- `sessionId` gives the agent memory — keep constant within a scan for multi-turn
+  jailbreaks, or let AIRS vary it per conversation.
+- If the cURL import doesn't carry the credential, add a custom header:
+  `Authorization: Basic <base64(username:password)>`.
+
+## Response mapping
+
+An AI Agent behind a Chat Trigger returns:
+
+```json
+{ "output": "<agent reply>" }
+```
+
+So mark `"output": "{RESPONSE}"`.
+
+## Agent-specific scope
+
+This target has **tool access** (stocks-mcp MCP node), so red-teaming covers more
+than the model: tool-abuse, excessive-agency, and SSRF-via-tool attacks are in
+scope (they are not for BleepBloopBot). Add this to the target **Background**
+(use case: stock-info agent with MCP tool access) so AIRS selects relevant attacks.
+
+---
+
 ## Reference
 
 - Scan endpoint targeted: `POST https://chatbot.demo-networks.com/api/chat`
+- n8n agent endpoint: `POST https://n8n.demo-networks.com/webhook/e5616171-e3b5-4c39-81d4-67409f9fa60a/chat` (Basic Auth)
 - Guardrail toggle: `POST https://chatbot.demo-networks.com/api/airs/toggle`
 - Status: `GET https://chatbot.demo-networks.com/api/status`
 
