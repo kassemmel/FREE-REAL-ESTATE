@@ -3,6 +3,10 @@
 .env.*
 !.env.example
 
+# SSH deploy keypair
+github_auth
+github_auth.pub
+
 # Local "ollama version" restore backups
 *.ollama.bak
 
