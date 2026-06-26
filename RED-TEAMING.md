@@ -158,6 +158,19 @@ than the model: tool-abuse, excessive-agency, and SSRF-via-tool attacks are in
 scope (they are not for BleepBloopBot). Add this to the target **Background**
 (use case: stock-info agent with MCP tool access) so AIRS selects relevant attacks.
 
+## Guardrail layer
+
+The agent's LLM calls are routed **through the Portkey gateway**, so a guardrail
+layer sits in front of the model (Portkey-side checks, incl. the AIRS guardrail).
+Caveat: the Portkey AIRS guardrail is **US-only** and the project key is
+German-region (403), so the *effective* guardrail is whatever else is active in
+the Portkey config — not the AIRS guardrail. So an n8n scan tests
+model + tools + Portkey guardrail together.
+
+For a baseline-vs-protected comparison (like the AIRS on/off split on
+BleepBloopBot), toggle the guardrail in the **Portkey config / virtual key**
+attached to the agent — there is no app-side toggle for the n8n path.
+
 ---
 
 ## Reference
