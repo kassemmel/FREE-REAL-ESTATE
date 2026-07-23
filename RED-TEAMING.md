@@ -46,9 +46,9 @@ curl -X POST https://chatbot.demo-networks.com/api/chat \
 - No auth header — `/api/chat` is unauthenticated (`backend/app.py:349`).
 - `{INPUT}` = where AI Red Teaming injects each attack prompt.
 - Swap `"model"` per scan to test each route: `ollama`, `azure/o4-mini`, or
-  `portkey/<model>`.
-  - ⚠️ Portkey routes are scanned *inside* the gateway (`backend/app.py:364`),
-    so a Portkey scan tests gateway-guardrail + model, not the raw model.
+  `AIGW/<model>` (the Portkey AI gateway).
+  - ⚠️ Gateway routes are scanned *inside* the gateway (`backend/app.py:358`),
+    so an `AIGW/` scan tests gateway-guardrail + model, not the raw model.
 
 ## Step 3 — Response mapping
 
@@ -168,8 +168,8 @@ the Portkey config — not the AIRS guardrail. So an n8n scan tests
 model + tools + Portkey guardrail together.
 
 For a baseline-vs-protected comparison (like the AIRS on/off split on
-BleepBloopBot), toggle the guardrail in the **Portkey config / virtual key**
-attached to the agent — there is no app-side toggle for the n8n path.
+BleepBloopBot), toggle the guardrail in the **Portkey config** attached to the
+agent's API key — there is no app-side toggle for the n8n path.
 
 ---
 

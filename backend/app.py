@@ -23,19 +23,19 @@ AZURE_DEPLOYMENTS = [d.strip() for d in os.environ.get('AZURE_OPENAI_DEPLOYMENTS
 AZURE_PREFIX = 'azure/'
 
 # --- Portkey AI gateway (OpenAI-compatible) ---
-# BASE_URL is the gateway root, e.g. https://api.portkey.ai/v1 (hosted) or a
+# BASE_URL is the gateway root, e.g. https://aigw.portkey.ai/v1 (hosted) or a
 # self-hosted gateway. MODELS is a comma-separated list of model names to offer;
-# each shows up in the UI as "portkey/<name>" and is sent through the gateway.
-# A virtual key / config / provider selects the downstream provider in Portkey.
-PORTKEY_BASE_URL    = os.environ.get('PORTKEY_BASE_URL', 'https://api.portkey.ai/v1').rstrip('/')
-PORTKEY_API_KEY     = os.environ.get('PORTKEY_API_KEY', '')
-PORTKEY_VIRTUAL_KEY = os.environ.get('PORTKEY_VIRTUAL_KEY', '')
-PORTKEY_PROVIDER    = os.environ.get('PORTKEY_PROVIDER', '')
-PORTKEY_CONFIG      = os.environ.get('PORTKEY_CONFIG', '')
-PORTKEY_MODELS      = [m.strip() for m in os.environ.get('PORTKEY_MODELS', '').split(',') if m.strip()]
+# each shows up in the UI as "AIGW/<name>" and is sent through the gateway.
+# The model string is passed to the gateway verbatim, so MODELS holds whichever
+# form the API key's config expects: a bare model name when that config already
+# pins the provider, or a Model Catalog slug ("@<provider>/<model>") when it does
+# not. Guardrails come from the config attached to the API key either way.
+PORTKEY_BASE_URL = os.environ.get('PORTKEY_BASE_URL', 'https://aigw.portkey.ai/v1').rstrip('/')
+PORTKEY_API_KEY  = os.environ.get('PORTKEY_API_KEY', '')
+PORTKEY_MODELS   = [m.strip() for m in os.environ.get('PORTKEY_MODELS', '').split(',') if m.strip()]
 
-# Models surfaced as "portkey/<model>" route through the Portkey gateway.
-PORTKEY_PREFIX = 'portkey/'
+# Models surfaced as "AIGW/<model>" route through the Portkey AI gateway.
+PORTKEY_PREFIX = 'AIGW/'
 
 AIRS_URL     = os.environ.get('PRISMA_AIRS_URL', 'https://service-de.api.aisecurity.paloaltonetworks.com')
 AIRS_API_KEY = os.environ.get('PRISMA_AIRS_API_KEY', '')
@@ -274,17 +274,11 @@ def _call_azure(deployment, messages):
 
 
 def _call_portkey(model, messages):
-    # OpenAI-compatible: model in the body, routed by the gateway to the
-    # downstream provider selected via virtual key / config / provider header.
+    # OpenAI-compatible: model in the body, passed through verbatim so a Model
+    # Catalog slug ("@azure-o4-mini") routes itself.
     headers = {'Content-Type': 'application/json'}
     if PORTKEY_API_KEY:
         headers['x-portkey-api-key'] = PORTKEY_API_KEY
-    if PORTKEY_VIRTUAL_KEY:
-        headers['x-portkey-virtual-key'] = PORTKEY_VIRTUAL_KEY
-    if PORTKEY_PROVIDER:
-        headers['x-portkey-provider'] = PORTKEY_PROVIDER
-    if PORTKEY_CONFIG:
-        headers['x-portkey-config'] = PORTKEY_CONFIG
     r = requests.post(
         f'{PORTKEY_BASE_URL}/chat/completions',
         headers=headers,

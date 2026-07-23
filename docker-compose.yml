@@ -28,11 +28,8 @@ services:
       - AZURE_OPENAI_API_VERSION=${AZURE_OPENAI_API_VERSION:-2024-10-21}
       - AZURE_OPENAI_DEPLOYMENTS=${AZURE_OPENAI_DEPLOYMENTS:-}
       # --- Portkey AI gateway --- (values from .env; leave PORTKEY_MODELS blank to disable)
-      - PORTKEY_BASE_URL=${PORTKEY_BASE_URL:-https://api.portkey.ai/v1}
+      - PORTKEY_BASE_URL=${PORTKEY_BASE_URL:-https://aigw.portkey.ai/v1}
       - PORTKEY_API_KEY=${PORTKEY_API_KEY:-}
-      - PORTKEY_VIRTUAL_KEY=${PORTKEY_VIRTUAL_KEY:-}
-      - PORTKEY_PROVIDER=${PORTKEY_PROVIDER:-}
-      - PORTKEY_CONFIG=${PORTKEY_CONFIG:-}
       - PORTKEY_MODELS=${PORTKEY_MODELS:-}
       # --- Prisma AIRS ---
       # Set your API key and profile name. Leave blank to disable scanning.
