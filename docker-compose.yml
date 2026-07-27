@@ -1,49 +1,16 @@
+# BleepBloopBot — Caddy-host deployment (DEFAULT stack).
+#
+#   docker compose up -d
+#
+# TLS is terminated by an external Caddy reverse proxy on another host, so nginx
+# here just serves plain HTTP on :3131 and n8n / stocks-mcp are published for
+# Caddy to front. Shared services (ollama, backend) come from compose.base.yml.
+#
+# For the public Azure VM edge use docker-compose.azure.yml instead.
+include:
+  - compose.base.yml
+
 services:
-  ollama:
-    container_name: bleepbloopbot-ollama
-    image: ollama/ollama:latest
-    restart: unless-stopped
-    volumes:
-      - ollama_data:/root/.ollama
-    # Uncomment below for NVIDIA GPU support:
-    # deploy:
-    #   resources:
-    #     reservations:
-    #       devices:
-    #         - driver: nvidia
-    #           count: all
-    #           capabilities: [gpu]
-    networks:
-      - internal
-
-  backend:
-    container_name: bleepbloopbot-backend
-    build: ./backend
-    restart: unless-stopped
-    environment:
-      - OLLAMA_URL=http://ollama:11434
-      # --- Azure AI Foundry / Azure OpenAI --- (values from .env; leave blank to disable)
-      - AZURE_OPENAI_ENDPOINT=${AZURE_OPENAI_ENDPOINT:-}
-      - AZURE_OPENAI_API_KEY=${AZURE_OPENAI_API_KEY:-}
-      - AZURE_OPENAI_API_VERSION=${AZURE_OPENAI_API_VERSION:-2024-10-21}
-      - AZURE_OPENAI_DEPLOYMENTS=${AZURE_OPENAI_DEPLOYMENTS:-}
-      # --- Portkey AI gateway --- (values from .env; leave PORTKEY_MODELS blank to disable)
-      - PORTKEY_BASE_URL=${PORTKEY_BASE_URL:-https://aigw.portkey.ai/v1}
-      - PORTKEY_API_KEY=${PORTKEY_API_KEY:-}
-      - PORTKEY_MODELS=${PORTKEY_MODELS:-}
-      # --- Prisma AIRS ---
-      # Set your API key and profile name. Leave blank to disable scanning.
-      - PRISMA_AIRS_API_KEY=${PRISMA_AIRS_API_KEY:-}
-      - PRISMA_AIRS_PROFILE=${PRISMA_AIRS_PROFILE:-}
-      # Change region if needed: https://service-de / service-in / service-sg
-      - PRISMA_AIRS_URL=${PRISMA_AIRS_URL:-https://service.api.aisecurity.paloaltonetworks.com}
-    volumes:
-      - prompts_data:/app/data
-    depends_on:
-      - ollama
-    networks:
-      - internal
-
   n8n:
     container_name: bleepbloopbot-n8n
     image: docker.n8n.io/n8nio/n8n:latest
@@ -100,11 +67,5 @@ services:
     networks:
       - internal
 
-networks:
-  internal:
-    driver: bridge
-
 volumes:
-  ollama_data:
-  prompts_data:
   n8n_data:

@@ -1,0 +1,62 @@
+# Shared services for BleepBloopBot, used by BOTH deployments.
+# Do not run this file on its own — it defines no web edge. It is pulled in via
+# `include:` by:
+#   - docker-compose.yml        (Caddy host — the default: `docker compose up -d`)
+#   - docker-compose.azure.yml  (Azure public VM: `docker compose -f docker-compose.azure.yml up -d --build`)
+#
+# Keeping ollama + backend here means the backend service (and its env block) has
+# a single source of truth, so the two edges can never drift.
+
+services:
+  ollama:
+    container_name: bleepbloopbot-ollama
+    image: ollama/ollama:latest
+    restart: unless-stopped
+    volumes:
+      - ollama_data:/root/.ollama
+    # For NVIDIA GPU support, install the NVIDIA container toolkit on the host
+    # and uncomment the deploy block below.
+    # deploy:
+    #   resources:
+    #     reservations:
+    #       devices:
+    #         - driver: nvidia
+    #           count: all
+    #           capabilities: [gpu]
+    networks:
+      - internal
+
+  backend:
+    container_name: bleepbloopbot-backend
+    build: ./backend
+    restart: unless-stopped
+    environment:
+      - OLLAMA_URL=http://ollama:11434
+      # --- Azure AI Foundry / Azure OpenAI --- (values from .env; leave blank to disable)
+      - AZURE_OPENAI_ENDPOINT=${AZURE_OPENAI_ENDPOINT:-}
+      - AZURE_OPENAI_API_KEY=${AZURE_OPENAI_API_KEY:-}
+      - AZURE_OPENAI_API_VERSION=${AZURE_OPENAI_API_VERSION:-2024-10-21}
+      - AZURE_OPENAI_DEPLOYMENTS=${AZURE_OPENAI_DEPLOYMENTS:-}
+      # --- Portkey AI gateway --- (values from .env; leave PORTKEY_MODELS blank to disable)
+      - PORTKEY_BASE_URL=${PORTKEY_BASE_URL:-https://aigw.portkey.ai/v1}
+      - PORTKEY_API_KEY=${PORTKEY_API_KEY:-}
+      - PORTKEY_MODELS=${PORTKEY_MODELS:-}
+      # --- Prisma AIRS --- (values from .env; leave blank to disable scanning)
+      # Change region if needed: https://service-de / service-in / service-sg
+      - PRISMA_AIRS_API_KEY=${PRISMA_AIRS_API_KEY:-}
+      - PRISMA_AIRS_PROFILE=${PRISMA_AIRS_PROFILE:-}
+      - PRISMA_AIRS_URL=${PRISMA_AIRS_URL:-https://service.api.aisecurity.paloaltonetworks.com}
+    volumes:
+      - prompts_data:/app/data
+    depends_on:
+      - ollama
+    networks:
+      - internal
+
+networks:
+  internal:
+    driver: bridge
+
+volumes:
+  ollama_data:
+  prompts_data:

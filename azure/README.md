@@ -15,10 +15,16 @@ are used — just a VM, a NIC, a public IP, a VNet, and a Network Security Group
 | `Microsoft.Network/virtualNetworks` + subnet | VM network |
 | `Microsoft.Network/networkInterfaces` | VM NIC |
 
-The VM's cloud-init installs Docker + the Compose plugin and
-registers a `airs.service` systemd unit that runs `docker compose up -d --build`
-in that directory. **It does not bake in your app files or secrets** — you copy those
-up in step 3 (keeps the 42 KB `index.html` and your Prisma key out of the template).
+The VM's cloud-init installs Docker + the Compose plugin. **It does not bake in
+your app files or secrets** — you bring the repo up in step 3 (keeps the 42 KB
+`index.html` and your Prisma key out of the template).
+
+> The template also writes an `airs.service` systemd unit that runs a bare
+> `docker compose up -d --build` in `/home/jkwisda/azure`. That reflects the
+> older flat-copy layout. The current workflow instead git-pulls the whole repo
+> and runs `docker compose -f docker-compose.azure.yml ...` from the repo root
+> (see below), so either disable that unit or update its `WorkingDirectory` +
+> `ExecStart` to match your clone path.
 
 ## Two layers of IP allowlisting
 
@@ -53,34 +59,41 @@ az deployment group create \
 
 Note the `fqdn` / `publicIP` / `sshCommand` outputs at the end.
 
-### 3. Copy the application onto the VM
+### 3. Get the repo onto the VM
 
-Run from the repo root (`~/AIRS`). This sends the app payload plus the
-Azure-tuned compose + nginx config into `/home/jkwisda/azure`:
+The app is a single source of truth in this repo — the Azure edge and the Caddy
+host share the same `backend/` and `index.html`. On the VM, clone (first time)
+or pull (updates) the repo and run the **Azure** compose file from its root:
 
 ```sh
 FQDN=<fqdn-from-output>
+ssh jkwisda@$FQDN
 
-rsync -av \
-  backend index.html .env \
-  azure/docker-compose.yml azure/nginx.conf \
-  jkwisda@$FQDN:/home/jkwisda/azure/
+# first time:
+git clone git@github.com:kassemmel/FREE-REAL-ESTATE.git ~/azure
+# updates thereafter:
+cd ~/azure && git pull
 ```
 
-> `.env` carries your Prisma AIRS key — it travels over SSH, never through the
-> ARM template. (Consider rotating the key that's currently committed in `.env`.)
+`.env` (with your Prisma AIRS key) is gitignored, so copy it up once out of band
+— e.g. `scp .env jkwisda@$FQDN:~/azure/.env`. It never travels through the ARM
+template. (Consider rotating the key that's currently committed in `.env`.)
+
+> The compose files use `${VAR:-default}` interpolation and auto-load `.env` from
+> the directory you run them in, so keep `.env` at the repo root on the VM.
 
 ### 4. Add your permitted IPs to nginx, then start
 
-SSH in and edit the nginx allowlist:
+Edit the nginx allowlist, then bring the stack up from the repo root:
 
 ```sh
-ssh jkwisda@$FQDN
-sudo nano /home/jkwisda/azure/nginx.conf   # add `allow`-style entries in the geo{} block
-sudo systemctl start airs.service
+cd ~/azure
+nano azure/nginx.conf          # add `allow`-style entries in the geo{} block
+docker compose -f docker-compose.azure.yml up -d --build
 ```
 
 First start builds the backend image and pulls Ollama — give it a minute.
+(n8n and stocks-mcp are Caddy-host-only and deliberately absent from this stack.)
 
 ### 5. Pull a model
 
@@ -118,12 +131,14 @@ Open `http://<fqdn>` from an allowlisted IP.
 
 ## Day-2 operations
 
+Run these from the repo root, always with `-f docker-compose.azure.yml`:
+
 ```sh
-cd /home/jkwisda/azure
-docker compose ps                 # status
-docker compose logs -f backend    # tail backend logs
-docker compose restart web        # after editing nginx.conf
-docker compose pull && docker compose up -d   # update images
+cd ~/azure
+docker compose -f docker-compose.azure.yml ps                 # status
+docker compose -f docker-compose.azure.yml logs -f backend    # tail backend logs
+docker compose -f docker-compose.azure.yml restart web        # after editing azure/nginx.conf
+git pull && docker compose -f docker-compose.azure.yml up -d --build   # deploy latest code
 ```
 
 ## Notes
@@ -133,7 +148,13 @@ docker compose pull && docker compose up -d   # update images
   and uncomment the GPU block in `docker-compose.yml` (also install the NVIDIA
   container toolkit on the host).
 - **Disk:** Ollama models are large; the OS disk defaults to 128 GB Premium SSD.
-- **TLS:** the edge is HTTP only. To add HTTPS, drop a cert into `/home/jkwisda/azure/certs`,
-  add a `listen 443 ssl;` server block to `nginx.conf`, and uncomment the 443
-  port + cert mount in `docker-compose.yml`.
+- **TLS:** `docker-compose.azure.yml` wires up Let's Encrypt via certbot. `azure/nginx.conf`
+  is the port-80 bootstrap config used to obtain the first cert; issue it once with:
+  ```sh
+  docker compose -f docker-compose.azure.yml run --rm certbot certonly --webroot \
+    -w /var/www/certbot -d <your-fqdn> --email kassemmel@protonmail.com --agree-tos --no-eff-email
+  ```
+  Then swap in the TLS server block (`cp azure/nginx.conf.https azure/nginx.conf` and
+  `docker compose -f docker-compose.azure.yml restart web`). The `certbot-renew` service
+  renews automatically and the `web` container reloads every 6h to pick up new certs.
 ```
