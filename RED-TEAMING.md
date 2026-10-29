@@ -123,8 +123,10 @@ volume (not the repo), so the values below come from the Chat Trigger node in n8
 - **Connection Method:** REST API
 - **Endpoint accessibility:** Public (`n8n.demo-networks.com` over TLS, via Caddy)
 - **Chat URL:** `https://n8n.demo-networks.com/webhook/e5616171-e3b5-4c39-81d4-67409f9fa60a/chat`
-- **Auth:** Basic Auth (username/password set on the Chat Trigger node) — enter in
-  SCM, do not commit credentials here.
+- **Auth:** None — the Chat Trigger node is set to public with no authentication,
+  so the endpoint is open to anyone with the URL. (To lock it down, set Basic
+  Auth on the Chat Trigger node and add `-u '<username>:<password>'` to the cURL
+  below; don't commit the credentials here.)
 - Workflow must be **Active** for the production `/webhook/` path to respond
   (otherwise it's `/webhook-test/`, live only while the node is listening).
 
@@ -133,7 +135,6 @@ volume (not the repo), so the values below come from the Chat Trigger node in n8
 ```bash
 curl -X POST https://n8n.demo-networks.com/webhook/e5616171-e3b5-4c39-81d4-67409f9fa60a/chat \
   -H "Content-Type: application/json" \
-  -u '<username>:<password>' \
   -d '{
     "action": "sendMessage",
     "sessionId": "airs-redteam-001",
@@ -145,8 +146,6 @@ curl -X POST https://n8n.demo-networks.com/webhook/e5616171-e3b5-4c39-81d4-67409
 - `action: "sendMessage"` matches the n8n hosted-chat protocol.
 - `sessionId` gives the agent memory — keep constant within a scan for multi-turn
   jailbreaks, or let AIRS vary it per conversation.
-- If the cURL import doesn't carry the credential, add a custom header:
-  `Authorization: Basic <base64(username:password)>`.
 
 ## Response mapping
 
@@ -237,7 +236,7 @@ other — keep them in sync manually if you want comparable scans.
 ## Reference
 
 - Scan endpoint targeted: `POST https://chatbot.demo-networks.com/api/chat`
-- n8n agent endpoint: `POST https://n8n.demo-networks.com/webhook/e5616171-e3b5-4c39-81d4-67409f9fa60a/chat` (Basic Auth)
+- n8n agent endpoint: `POST https://n8n.demo-networks.com/webhook/e5616171-e3b5-4c39-81d4-67409f9fa60a/chat` (no auth)
 - n8n agent endpoint (native n8n target): `POST https://n8n.demo-networks.com/webhook/airt-se-roundtable` (Header `X-AIRT-Key`)
 - Guardrail toggle: `POST https://chatbot.demo-networks.com/api/airs/toggle`
 - Status: `GET https://chatbot.demo-networks.com/api/status`
