@@ -38,7 +38,8 @@ docker compose up -d
 ```
 
 Serves the UI on `:3131`; also brings up `n8n` (:5678) and `stocks-mcp` (:8077) for
-Caddy to front.
+Caddy to front. Load the n8n workflows and credentials with `n8n/n8n-sync.sh import`
+(see [`n8n/README.md`](n8n/README.md)).
 
 **Azure public VM** (nginx is the public edge, TLS via Let's Encrypt/certbot):
 

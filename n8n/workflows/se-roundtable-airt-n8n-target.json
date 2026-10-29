@@ -1,0 +1,415 @@
+{
+  "id": "AirtSERoundtbl01",
+  "name": "SE Roundtable (AIRT n8n target)",
+  "description": null,
+  "isArchived": false,
+  "nodes": [
+    {
+      "parameters": {
+        "content": "",
+        "height": 252,
+        "width": 300,
+        "color": 7
+      },
+      "id": "709c7218-1966-4be2-aea7-041ad638fb5f",
+      "cid": "Ikx1Y2FzIFBleXJpbiI",
+      "name": "Sticky Note12",
+      "type": "n8n-nodes-base.stickyNote",
+      "creator": "Lucas Peyrin",
+      "position": [
+        -288,
+        -208
+      ],
+      "typeVersion": 1,
+      "notes": "© 2025 Lucas Peyrin"
+    },
+    {
+      "parameters": {
+        "content": "\n\n\n\n\n\n\n\n\n\n",
+        "height": 188,
+        "width": 396,
+        "color": 7
+      },
+      "id": "5e0ed3db-bf40-4589-bc65-8a5acd0b68bd",
+      "cid": "Ikx1Y2FzIFBleXJpbiI",
+      "name": "Sticky Note13",
+      "type": "n8n-nodes-base.stickyNote",
+      "creator": "Lucas Peyrin",
+      "position": [
+        96,
+        -144
+      ],
+      "typeVersion": 1,
+      "notes": "© 2025 Lucas Peyrin"
+    },
+    {
+      "parameters": {
+        "content": "\n\n\n\n\n\n\n\n\n\n\n\n\n\nThis node helps your agent remember the last few messages to stay on topic.",
+        "height": 212,
+        "width": 308,
+        "color": 7
+      },
+      "id": "d9f77b07-304e-4fe0-932d-391d84bd941c",
+      "cid": "Ikx1Y2FzIFBleXJpbiI",
+      "name": "Sticky Note15",
+      "type": "n8n-nodes-base.stickyNote",
+      "creator": "Lucas Peyrin",
+      "position": [
+        96,
+        128
+      ],
+      "typeVersion": 1,
+      "notes": "© 2025 Lucas Peyrin"
+    },
+    {
+      "parameters": {
+        "content": "\n\n\n\n\n\n\n\n\n\n\n\n\n\n",
+        "height": 212,
+        "width": 404,
+        "color": 7
+      },
+      "id": "2860570e-04f9-4d43-b805-90c75e45c7d9",
+      "cid": "Ikx1Y2FzIFBleXJpbiI",
+      "name": "Sticky Note16",
+      "type": "n8n-nodes-base.stickyNote",
+      "creator": "Lucas Peyrin",
+      "position": [
+        496,
+        128
+      ],
+      "typeVersion": 1,
+      "notes": "© 2025 Lucas Peyrin"
+    },
+    {
+      "parameters": {
+        "toolDescription": "Gets the latest blog posts about any rss feed.",
+        "url": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('URL', `Use one of:\n- https://feeds.bbci.co.uk/news/world/rss.xml (BBC World – global headlines)\n- https://www.aljazeera.com/xml/rss/all.xml (Al Jazeera English – in‑depth global coverage)\n- http://rss.cnn.com/rss/edition_world.rss (CNN World – breaking news worldwide)\n- https://techcrunch.com/feed/ (TechCrunch – global tech & startup news)\n- http://news.ycombinator.com/rss (Hacker News – tech community headlines)\n- https://n8n.io/blog/rss (n8n Blog – updates & tutorials)\n- https://www.bonappetit.com/feed/recipes-rss-feed/rss (Bon Appétit – recent recipes list)\n- https://www.endsreport.com/rss/news-and-analysis (ENDS Report – environmental law & policy news)\n- https://medlineplus.gov/groupfeeds/new.xml (MedlinePlus – health topics & wellness updates)`, 'string') }}",
+        "options": {}
+      },
+      "id": "40aa3038-2740-42b7-99a8-9e4d9e36afb2",
+      "cid": "Ikx1Y2FzIFBleXJpbiI",
+      "name": "Get News",
+      "type": "n8n-nodes-base.rssFeedReadTool",
+      "creator": "Lucas Peyrin",
+      "position": [
+        640,
+        176
+      ],
+      "typeVersion": 1.2,
+      "notes": "© 2025 Lucas Peyrin"
+    },
+    {
+      "parameters": {
+        "toolDescription": "Get weather forecast anywhere, anytime. You can make requests by assuming most information, the only thing you need is the location (use the city name to infer lat and long automatically) and time period (assume today if not specified)",
+        "url": "https://api.open-meteo.com/v1/forecast",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "latitude",
+              "value": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('parameters0_Value', `Latitude of the location, e.g. 45.75 for Lyon. Do not ask the user just infer it automatically.`, 'string') }}"
+            },
+            {
+              "name": "longitude",
+              "value": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('parameters1_Value', `Longitude of the location, e.g. 4.85 for Lyon. Do not ask the user just infer it automatically.`, 'string') }}"
+            },
+            {
+              "name": "current",
+              "value": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('parameters2_Value', `Comma-separated list of current weather variables (no whitespace).\n\nExample: temperature_2m,windspeed_10m,rain.\n\nOptions: temperature_2m,relative_humidity_2m,apparent_temperature,is_day,precipitation,rain,showers,snowfall,weathercode,cloudcover_total,pressure_msl,surface_pressure,windspeed_10m,winddirection_10m,windgusts_10m.`, 'string') }}"
+            },
+            {
+              "name": "hourly",
+              "value": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('parameters3_Value', `Comma-separated list of hourly weather variables (no whitespace). Hourly is only useful to get one day's information. For weakly overview please use daily.\n\nExample: temperature_2m,precipitation.\n\nOptions: temperature_2m,relative_humidity_2m,dewpoint_2m,apparent_temperature,precipitation,rain,showers,snowfall,snow_depth,pressure_msl,surface_pressure,cloudcover_total,cloudcover_low,cloudcover_mid,cloudcover_high,windspeed_10m,winddirection_10m,windgusts_10m,visibility,is_day,sunshine_duration,soil_temperature,soil_moisture,PM10,PM2_5,carbon_monoxide,ozone,us_aqi,UV_index.`, 'string') }}"
+            },
+            {
+              "name": "daily",
+              "value": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('parameters4_Value', `Comma-separated list of daily weather variables (no whitespace).\n\nExample: temperature_2m_max,precipitation_sum.\n\nOptions: weathercode,temperature_2m_max,temperature_2m_min,apparent_temperature_max,apparent_temperature_min,precipitation_sum,rain_sum,showers_sum,snowfall_sum,precipitation_hours,sunrise,sunset,daylight_duration,sunshine_duration,pressure_msl_max,pressure_msl_min,surface_pressure_max,surface_pressure_min,windgusts_10m_max,windspeed_10m_max,winddirection_10m_dominant,shortwave_radiation_sum.`, 'string') }}"
+            },
+            {
+              "name": "start_date",
+              "value": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('parameters5_Value', `Start date in YYYY-MM-DD format. Example: 2025-07-15`, 'string') }}"
+            },
+            {
+              "name": "end_date",
+              "value": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('parameters6_Value', `End date in YYYY-MM-DD format. Must be after start_date. Example: 2025-07-18`, 'string') }}"
+            },
+            {
+              "name": "temperature_unit",
+              "value": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('parameters7_Value', `Unit for temperature. Options: celsius (default), fahrenheit.`, 'string') }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "86106a1e-710c-42f2-8027-a39349ace1a8",
+      "cid": "Ikx1Y2FzIFBleXJpbiI",
+      "name": "Get Weather",
+      "type": "n8n-nodes-base.httpRequestTool",
+      "creator": "Lucas Peyrin",
+      "position": [
+        528,
+        176
+      ],
+      "notesInFlow": true,
+      "typeVersion": 4.2
+    },
+    {
+      "parameters": {
+        "contextWindowLength": 30,
+        "sessionIdType": "customKey",
+        "sessionKey": "={{ $('Webhook').item.json.body.sessionId }}"
+      },
+      "id": "15e9e333-3314-4529-ab1c-0c5df8494154",
+      "cid": "Ikx1Y2FzIFBleXJpbiI",
+      "name": "Conversation Memory",
+      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+      "creator": "Lucas Peyrin",
+      "position": [
+        208,
+        176
+      ],
+      "typeVersion": 1.3,
+      "notes": "© 2025 Lucas Peyrin"
+    },
+    {
+      "parameters": {
+        "content": "\n\n\n\n\n\n\n\n\n\n\n\nPrisma AIRS AI Gateway\n",
+        "height": 300,
+        "width": 294,
+        "color": 3
+      },
+      "id": "f62d296e-d5c6-4f30-b20c-efa0071fa51b",
+      "cid": "Ikx1Y2FzIFBleXJpbiI",
+      "name": "Sticky Note",
+      "type": "n8n-nodes-base.stickyNote",
+      "creator": "Lucas Peyrin",
+      "position": [
+        -288,
+        80
+      ],
+      "typeVersion": 1,
+      "notes": "© 2025 Lucas Peyrin"
+    },
+    {
+      "parameters": {
+        "endpointUrl": "https://mcp.portkey.ai/stocks-mcp/mcp",
+        "authentication": "headerAuth",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.mcpClientTool",
+      "typeVersion": 1.3,
+      "position": [
+        768,
+        176
+      ],
+      "id": "d30614b3-fca3-4fe3-8af8-9cea3cb2e304",
+      "name": "Get Stocks History",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "GjVTRCGVMxfuQ8Tm",
+          "name": "Header Auth account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "options": {
+          "systemMessage": "Position: You are \"InvestoMind,\" an advanced AI Financial Assistant and Stock Market Analyst. Your primary goal is to help users track market movements, fetch real-time stock data, and provide data-driven stock recommendations based on user preferences.\n"
+        },
+        "promptType": "define",
+        "text": "={{ $('Webhook').item.json.body.chatInput }}",
+        "hasOutputParser": false
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        176,
+        -112
+      ],
+      "id": "afb0c51a-ca26-4b34-941c-3407f210ae52",
+      "name": "Not a financial Advisor",
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "value": "o4-mini-2025-04-16",
+          "mode": "list",
+          "cachedResultName": "o4-mini-2025-04-16"
+        },
+        "responsesApiEnabled": false,
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.3,
+      "position": [
+        -176,
+        128
+      ],
+      "id": "115e192c-f85f-476e-a82c-e2dbbd87fe94",
+      "name": "Prisma AIRS AI Gateway",
+      "notesInFlow": false,
+      "credentials": {
+        "openAiApi": {
+          "id": "aypPOwgmZuWI3Jk0",
+          "name": "OpenAI account"
+        }
+      },
+      "notes": "PRISMA AIRS AI GATEWAY"
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "airt-se-roundtable",
+        "authentication": "headerAuth",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "5199a996-ae09-48d9-a8ad-2ca2eed12f56",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -192,
+        -112
+      ],
+      "webhookId": "b5f7ff8e-cfbf-4cb5-acb3-c5de38c7a84d",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "AirtHdrAuth00001",
+          "name": "AIRT Webhook Header Auth"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { \"output\": $json.output } }}",
+        "options": {}
+      },
+      "id": "8bc57438-b74b-4a1b-bd2c-fd89161df80d",
+      "name": "Respond to Webhook",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [
+        560,
+        -112
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { \"error\": \"blocked by guardrail\", \"detail\": $json.error } }}",
+        "options": {
+          "responseCode": 446
+        }
+      },
+      "id": "a046f2e7-8c05-4865-9328-92e962c865ca",
+      "name": "Respond Guardrail Block",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [
+        560,
+        64
+      ]
+    }
+  ],
+  "connections": {
+    "Get News": {
+      "ai_tool": [
+        [
+          {
+            "node": "Not a financial Advisor",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Weather": {
+      "ai_tool": [
+        [
+          {
+            "node": "Not a financial Advisor",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Conversation Memory": {
+      "ai_memory": [
+        [
+          {
+            "node": "Not a financial Advisor",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Stocks History": {
+      "ai_tool": [
+        [
+          {
+            "node": "Not a financial Advisor",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Not a financial Advisor": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond Guardrail Block",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prisma AIRS AI Gateway": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Not a financial Advisor",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Not a financial Advisor",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "meta": {
+    "templateCredsSetupCompleted": true
+  },
+  "nodeGroups": [],
+  "sourceWorkflowId": null,
+  "tags": []
+}

@@ -116,8 +116,9 @@ Comparing attack-success-rate A vs B is the guardrail efficacy number.
 # n8n Agent target
 
 The second app: an n8n **AI Agent** workflow exposed via a **Chat Trigger** node,
-with the **stocks-mcp** MCP tool attached. The workflow lives in the `n8n_data`
-volume (not the repo), so the values below come from the Chat Trigger node in n8n.
+with the **stocks-mcp** MCP tool attached. The workflow is versioned in
+[`n8n/`](n8n/README.md) and loaded into the `n8n_data` volume with
+`n8n/n8n-sync.sh import`.
 
 - **Type:** Agent
 - **Connection Method:** REST API
