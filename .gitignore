@@ -24,11 +24,10 @@ __pycache__/
 *.safetensors
 *.pt
 
-# Local modelsecurity scratch (uv project scaffold, helper script)
+# Local modelsecurity scratch (uv project scaffold)
 modelsecurity/.python-version
 modelsecurity/main.py
 modelsecurity/pyproject.toml
 modelsecurity/uv.lock
-modelsecurity/pypiurl.sh
 modelsecurity/.venv/
 modelsecurity/venv/
