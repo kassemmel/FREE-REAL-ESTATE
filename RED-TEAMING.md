@@ -47,6 +47,11 @@ curl -X POST https://chatbot.demo-networks.com/api/chat \
 - `{INPUT}` = where AI Red Teaming injects each attack prompt.
 - Swap `"model"` per scan to test each route: `ollama`, `azure/o4-mini`, or
   `AIGW/<model>` (the Portkey AI gateway).
+  - Ollama models use their exact name from `GET /api/models`, e.g.
+    `hf.co/unsloth/SmolLM3-3B-GGUF:latest` (note `SmolLM3` casing — a typo
+    returns `{"error": ...}` with no `content`, failing SCM validation).
+    SmolLM3 runs on CPU: keep the rate limit low and the timeout generous. Its
+    replies start with an empty `<think></think>` block — harmless.
   - ⚠️ Gateway routes are scanned *inside* the gateway (`backend/app.py:358`),
     so an `AIGW/` scan tests gateway-guardrail + model, not the raw model.
 
@@ -64,7 +69,9 @@ In the response-config step, mark the reply field as:
 "content": "{RESPONSE}"
 ```
 
-So `{RESPONSE}` ← `content` (`backend/app.py:445`).
+So `{RESPONSE}` ← `content` (`backend/app.py:445`). This is the same for every
+model route — don't reuse the n8n target's `output` mapping here, or validation
+fails with `response key 'output' not found`.
 
 ## Step 4 — Guardrail methodology (important for this app)
 
@@ -173,10 +180,65 @@ agent's API key — there is no app-side toggle for the n8n path.
 
 ---
 
+# n8n Agent target — native n8n connection method
+
+Alternative to the REST target above, using AI Red Teaming's built-in **n8n**
+connection method. It runs as a **separate workflow** so the Chat Trigger path
+above keeps working unchanged:
+
+| Workflow (n8n)                       | ID                 | Trigger                         | Path |
+|--------------------------------------|--------------------|---------------------------------|------|
+| `SE Roundtable`                      | `OMB6hw7URGliSmqM` | Chat Trigger (REST target above)| `/webhook/e5616171-…/chat` |
+| `SE Roundtable (AIRT n8n target)`    | `AirtSERoundtbl01` | Webhook + Respond to Webhook    | `/webhook/airt-se-roundtable` |
+
+The new workflow is a copy of the original (same agent, model via Portkey, tools,
+memory) with these changes:
+
+- **Webhook** node: `POST`, path `airt-se-roundtable`, Respond = *Using 'Respond to
+  Webhook' Node*, Auth = **Header Auth** (credential `AIRT Webhook Header Auth`).
+- Agent prompt = `{{ $('Webhook').item.json.body.chatInput }}`.
+- Simple Memory session key = `{{ $('Webhook').item.json.body.sessionId }}`
+  (multi-turn context per AIRT conversation).
+- **Respond to Webhook** → `{ "output": <agent reply> }` (HTTP 200).
+- Agent error output → **Respond Guardrail Block** → HTTP **446**
+  `{ "error": "blocked by guardrail", "detail": "..." }`. Portkey returns 446 when
+  its guardrail fails; without this branch a block came back as an empty 200.
+
+## SCM target settings
+
+- **Target Type:** Agent · **Connection Method:** n8n
+- **Modality:** Text (the workflow has no file-extraction nodes — leave Files/Images off)
+- **Endpoint accessibility:** Public
+- **Webhook URL:** `https://n8n.demo-networks.com/webhook/airt-se-roundtable`
+- **Supports Streaming:** No
+- **Authentication:** Header — name `X-AIRT-Key`, value = `N8N_AIRT_HEADER_SECRET`
+  from `~/AIRS/.env` (not committed)
+- **Supports Multi-Turn:** Yes (default)
+- **Request / Response JSON:** leave defaults (`chatInput` + `sessionId` in,
+  `output` out)
+- **Guardrails/Content Filters:** Error Code `446`, Sample Exception JSON:
+  `{ "error": "blocked by guardrail", "detail": "Your request is invalid or could not be processed by the service" }`
+- **Background:** same as the REST n8n target (stock-info agent with MCP tool access).
+
+Quick check:
+
+```bash
+curl -X POST https://n8n.demo-networks.com/webhook/airt-se-roundtable \
+  -H "Content-Type: application/json" -H "X-AIRT-Key: $N8N_AIRT_HEADER_SECRET" \
+  -d '{"chatInput":"Reply with just OK","sessionId":"test-1","files":[]}'
+# → {"output":"OK"}
+```
+
+Editing the agent (prompt, tools, model) in one workflow does **not** change the
+other — keep them in sync manually if you want comparable scans.
+
+---
+
 ## Reference
 
 - Scan endpoint targeted: `POST https://chatbot.demo-networks.com/api/chat`
 - n8n agent endpoint: `POST https://n8n.demo-networks.com/webhook/e5616171-e3b5-4c39-81d4-67409f9fa60a/chat` (Basic Auth)
+- n8n agent endpoint (native n8n target): `POST https://n8n.demo-networks.com/webhook/airt-se-roundtable` (Header `X-AIRT-Key`)
 - Guardrail toggle: `POST https://chatbot.demo-networks.com/api/airs/toggle`
 - Status: `GET https://chatbot.demo-networks.com/api/status`
 
