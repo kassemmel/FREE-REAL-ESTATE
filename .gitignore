@@ -19,3 +19,16 @@ __pycache__/
 
 # macOS
 .DS_Store
+
+# Model weights (large binaries)
+*.safetensors
+*.pt
+
+# Local modelsecurity scratch (uv project scaffold, helper script)
+modelsecurity/.python-version
+modelsecurity/main.py
+modelsecurity/pyproject.toml
+modelsecurity/uv.lock
+modelsecurity/pypiurl.sh
+modelsecurity/.venv/
+modelsecurity/venv/
